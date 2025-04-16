@@ -6,7 +6,11 @@ defmodule TodoListWeb.TaskLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, stream(socket, :tasks, Tasks.list_tasks())}
+    tasks = Tasks.list_tasks()
+    {:ok,
+     socket
+     |> assign(:tasks, tasks) # Explicitly assign tasks
+     |> stream(:tasks, tasks)}
   end
 
   @impl true
@@ -34,7 +38,11 @@ defmodule TodoListWeb.TaskLive.Index do
 
   @impl true
   def handle_info({TodoListWeb.TaskLive.FormComponent, {:saved, task}}, socket) do
-    {:noreply, stream_insert(socket, :tasks, task)}
+    updated_tasks = [task | socket.assigns.tasks] # Add the new task to the list
+    {:noreply,
+     socket
+     |> assign(:tasks, updated_tasks) # Update the :tasks key
+     |> stream(:tasks, updated_tasks, reset: true)} # Reset the stream with the updated list
   end
 
   @impl true
@@ -45,18 +53,6 @@ defmodule TodoListWeb.TaskLive.Index do
     {:noreply, stream_delete(socket, :tasks, task)}
   end
 
-  # Sorting
-  @impl true
-  def handle_event("sort", %{"by" => sort_by}, socket) do
-    sorted_tasks =
-      case sort_by do
-        "due_date" -> Enum.sort_by(socket.assigns.tasks, & &1.due_date)
-        "completed" -> Enum.scan(socket.assigns.tasks, & &1.completed)
-        _ -> socket.assigns.tasks
-      end
-    {:noreply, assign(socket, tasks: sorted_tasks)}
-  end
-
   def handle_event("toggle_complete", %{"id" => id}, socket) do
     task = TodoList.Tasks.get_task!(id)
 
@@ -64,22 +60,59 @@ defmodule TodoListWeb.TaskLive.Index do
     updated_attrs = %{completed: !task.completed}
     {:ok, updated_task} = TodoList.Tasks.update_task(task, updated_attrs)
 
-    # Replace the task in the stream
-    {:noreply, stream_insert(socket, :tasks, updated_task)}
+    # Update the tasks list
+    updated_tasks =
+      socket.assigns.tasks
+      |> Enum.map(fn t -> if t.id == updated_task.id, do: updated_task, else: t end)
+
+    {:noreply,
+     socket
+     |> assign(:tasks, updated_tasks) # Update the :tasks key
+     |> stream(:tasks, updated_tasks, reset: true)} # Reset the stream with the updated list
   end
 
-  # def export_csv(conn, _params) do
-  #   tasks = Tasks.list_tasks()
-  #   csv = [["Title", "Description", "Due Date", "Completed"]] ++
-  #         Enum.map(tasks, fn task ->
-  #           [task.title, task.description, task.due_date, task.completed]
-  #         end)
+  # Sort the tasks by completion status
+  def handle_event("sort_by_completed", _params, socket) do
+    # Get the current sort order or default to ascending
+    current_order = socket.assigns[:sort_order] || :asc
 
-  #   conn
-  #   |> put_resp_content_type("text/csv")
-  #   |> put_resp_header("content-disposition", "attachment; filename=\"tasks.csv\"")
-  #   |> send_resp(200, CSV.encode_to_iodata(csv))
-  # end
+    # Toggle the sort order
+    new_order = if current_order == :asc, do: :desc, else: :asc
 
+    # Sort the tasks based on the new order
+    sorted =
+      case new_order do
+        :asc -> Enum.sort_by(socket.assigns.tasks, & &1.completed)
+        :desc -> Enum.sort_by(socket.assigns.tasks, & &1.completed, :desc)
+      end
 
+    # Update the socket with the new sort order and sorted tasks
+    {:noreply,
+     socket
+     |> assign(:tasks, sorted) # Update the :tasks key
+     |> assign(:sort_order, new_order) # Update the sort order
+     |> stream(:tasks, sorted, reset: true)} # Reset the stream with the sorted list
+  end
+
+  def handle_event("sort_by_due_date", _params, socket) do
+    # Get the current sort order or default to ascending
+    current_order = socket.assigns[:sort_order_due_date] || :asc
+
+    # Toggle the sort order
+    new_order = if current_order == :asc, do: :desc, else: :asc
+
+    # Sort the tasks based on the new order
+    sorted =
+      case new_order do
+        :asc -> Enum.sort_by(socket.assigns.tasks, & &1.due_date)
+        :desc -> Enum.sort_by(socket.assigns.tasks, & &1.due_date, :desc)
+      end
+
+    # Update the socket with the new sort order and sorted tasks
+    {:noreply,
+     socket
+     |> assign(:tasks, sorted) # Update the :tasks key
+     |> assign(:sort_order_due_date, new_order) # Update the sort order for due date
+     |> stream(:tasks, sorted, reset: true)} # Reset the stream with the sorted list
+  end
 end

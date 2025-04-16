@@ -3,29 +3,6 @@ defmodule TodoListWeb.TaskCSVController do
   alias TodoList.Tasks
   alias NimbleCSV.RFC4180, as: CSV
 
-
-  # def export(conn, _params) do
-  #   tasks = Tasks.list_tasks()
-
-  #   csv_content =
-  #     [["Title", "Description", "Due Date", "Completed"]] ++
-  #       Enum.map(tasks, fn task ->
-  #         [
-  #           task.title,
-  #           task.description,
-  #           task.due_date |> to_string(),
-  #           if(task.completed, do: "Yes", else: "No")
-  #         ]
-  #       end)
-  #     |> CSV.parse_stream(skip)
-  #     |> Enum.to_list()
-  #     |> IO.iodata_to_binary()
-
-  #   conn
-  #   |> put_resp_content_type("text/csv")
-  #   |> put_resp_header("content-disposition", ~s[attachment; filename="tasks.csv"])
-  #   |> send_resp(200, csv_content)
-  # end
   def download_csv(conn, _params) do
     tasks = Tasks.list_tasks()
 

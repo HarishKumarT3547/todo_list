@@ -17,8 +17,30 @@
 >
   <:col :let={{_id, task}} label="Title">{task.title}</:col>
   <:col :let={{_id, task}} label="Description">{task.description}</:col>
-  <:col :let={{_id, task}} label="Due date">{task.due_date}</:col>
-  <:col :let={{_id, task}} label="Completed">
+  <:col :let={{_id, task}} label={
+    ~H"""
+    <button
+      type="button"
+      phx-click="sort_by_due_date"
+      class="text-blue-600 hover:underline"
+    >
+      Due date
+    </button>
+    """
+  }>
+    {task.due_date}
+  </:col>
+  <:col :let={{_id, task}} label={
+    ~H"""
+    <button
+      type="button"
+      phx-click="sort_by_completed"
+      class="text-blue-600 hover:underline"
+    >
+      Completed
+    </button>
+    """
+  }>
     <input
       type="checkbox"
       phx-click="toggle_complete"

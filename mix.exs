@@ -33,7 +33,6 @@ defmodule TodoList.MixProject do
   defp deps do
     [
       {:nimble_csv, "~> 1.2"},
-      {:csv, "~> 2.4.1"},
       {:phoenix, "~> 1.7.21"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.10"},
